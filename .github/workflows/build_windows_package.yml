@@ -18,11 +18,11 @@ jobs:
       FFMPEG_URL: https://github.com/rigaya/ffmpeg_dlls_for_hwenc/releases/download/20241102/ffmpeg_dlls_for_hwenc_20241102.7z
       DEPLIB_URL: https://github.com/rigaya/Amatsukaze/releases/download/1.0.4.6/AmatsukazeDepLibs_20260131.7z
       JOINLOGO_URL: https://github.com/yobibi/join_logo_scp/releases/download/v5.1.1/join_logo_scp_51_1.zip
-      AVSCUDA_URL: https://github.com/rigaya/AviSynthCUDAFilters/releases/download/0.7.3/AviSynthCUDAFilters_Release_0.7.3.zip
+      AVSCUDA_URL: https://github.com/rigaya/AviSynthCUDAFilters/releases/download/0.7.5/AviSynthCUDAFilters_Release_0.7.5.zip
       LSMASH_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20250907-045307/lsmash_20200404.7z
-      X264_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260905-074217/x264_3223_x64.zip
-      X265_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260905-074217/x265_4.3%2B24_x64.zip
-      SVT_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260905-074217/SvtAv1EncApp_4.2.0-107_x64_clang.zip
+      X264_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260919-084954/x264_3223_x64.zip
+      X265_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260919-084954/x265_4.3%2B45_x64.zip
+      SVT_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20260919-084954/SvtAv1EncApp_4.2.0-146_x64_clang.zip
       X262_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20250907-045307/x262_20260901.zip
       NNEDI3_URL: https://github.com/rigaya/NNEDI3/releases/download/0.00/nnedi3_0.00_x64.zip
       BASE_PKG_URL: https://github.com/rigaya/Amatsukaze/releases/download/1.0.9.0/AmatsukazeBasePkg_20260902.7z
@@ -179,6 +179,8 @@ jobs:
           if exist x64\\Release2\\*.dll copy /y x64\\Release2\\*.dll package\\exe_files
           if exist x64\\Release\\*.dll copy /y x64\\Release\\*.dll package\\exe_files
           if exist x64\\Release\\*.exe copy /y x64\\Release\\*.exe package\\exe_files
+          rem 単体テスト用の実行ファイルは配布物から除外する
+          if exist package\\exe_files\\AmatsukazeNativeTests.exe del /f /q package\\exe_files\\AmatsukazeNativeTests.exe
 
           if exist publish\\win-x64\\*.exe copy /y publish\\win-x64\\*.exe package\\exe_files
           if exist publish\\win-x64\\*.dll copy /y publish\\win-x64\\*.dll package\\exe_files
@@ -217,6 +219,7 @@ jobs:
           if exist defaults\\bat_win robocopy defaults\\bat_win package\\bat /E /NFL /NDL /NJH /NJS
           if exist defaults\\profile robocopy defaults\\profile package\\profile /E /NFL /NDL /NJH /NJS
           if exist defaults\\drcs\\drcs_map.txt copy /y defaults\\drcs\\drcs_map.txt package\\exe_files
+          if exist defaults\\exe_files\\ch_sid.txt copy /y defaults\\exe_files\\ch_sid.txt package\\exe_files
           if exist defaults\\exe_files\\plugins64\\*.avsi copy /y defaults\\exe_files\\plugins64\\*.avsi package\\exe_files\\plugins64
 
           rem SCRenamePy 0.05タグの全ファイル（.gitを除外）

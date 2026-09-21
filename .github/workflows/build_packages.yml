@@ -75,9 +75,6 @@ jobs:
   build-dotnet:
     name: Build .NET (Ubuntu 24.04)
     runs-on: ubuntu-latest
-    # AviSynth+ を必要としないので、派生イメージを作らずベースイメージをそのまま使う
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -87,17 +84,23 @@ jobs:
 
       - name: Check wasm-tools workload
         run: |
+          # jobs.container は可変タグの古いイメージがrunnerに残る場合があるため、明示的にpullする。
+          docker pull ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404
           # wasm-tools が無いとWebUIが最適化なしで発行され、静かにサイズが増える。
           # ベースイメージ側で入れているので、無い場合はイメージが古い。
-          if ! dotnet workload list | grep -q "wasm-tools"; then
+          if ! docker run --rm \
+            ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404 \
+            dotnet workload list | grep -q "wasm-tools"; then
             echo "wasm-toolsワークロードがありません。build_base_image.ymlを再実行してベースイメージを更新してください。" >&2
             exit 1
           fi
 
       - name: Build .NET
         run: |
-          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
-          ./scripts/build.sh buildAmatsukaze/Amatsukaze --dotnet-only
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404 \
+            bash -lc 'git config --global --add safe.directory /work && cd /work && ./scripts/build.sh buildAmatsukaze/Amatsukaze --dotnet-only'
 
       - name: Pack .NET tree
         run: |
@@ -150,7 +153,7 @@ jobs:
           mkdir -p pkg
           tar -xf parts/native.tar -C pkg
           tar -xf parts/dotnet.tar -C pkg
-          PKG_NAME=Amatsukaze_linux_${{ steps.rev.outputs.version_name }}.tar.xz
+          PKG_NAME=Amatsukaze_linux_${{ steps.rev.outputs.version_name }}_x64.tar.xz
           tar -Jcf ${PKG_NAME} -C pkg .
           echo "pkg_name=${PKG_NAME}" >> $GITHUB_OUTPUT
 
@@ -200,8 +203,12 @@ jobs:
       - name: Install yq
         run: |
           YQ_VERSION=v4.44.3
-          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
+          yq_tmp=$(mktemp)
+          trap 'rm -f "$yq_tmp"' EXIT
+          curl --fail --location --no-progress-meter --retry 5 --retry-all-errors --retry-delay 10 --retry-max-time 300 --connect-timeout 15 --max-time 120 --output "$yq_tmp" \
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          sudo install -m 0755 "$yq_tmp" /usr/local/bin/yq
+          yq --version
 
       - name: Disable GPU-related blocks in compose.yml (safe delete)
         working-directory: docker

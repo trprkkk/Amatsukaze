@@ -2022,7 +2022,7 @@ namespace Amatsukaze.Server
         internal string MakeAmatsukazeArgs(
             ProcMode mode,
             ProfileSetting profile,
-            Setting setting,
+            Setting setting, string workPath,
             bool isGeneric,
             string src, string srcOrg, string dst, string json,
             VideoStreamFormat streamFormat,
@@ -2071,6 +2071,13 @@ namespace Amatsukaze.Server
                 .Append(GetDRCSMapPath())
                 .Append("\"");
 
+            if (!string.IsNullOrEmpty(setting.TsReadExPath))
+            {
+                sb.Append(" --tsreadex \"")
+                    .Append(setting.TsReadExPath)
+                    .Append("\"");
+            }
+
             if (srcOrg != null)
             {
                 sb.Append(" --original-input-file \"").Append(srcOrg).Append("\"");
@@ -2109,7 +2116,7 @@ namespace Amatsukaze.Server
                 }
 
                 sb.Append(" -w \"")
-                    .Append(setting.WorkPath)
+                    .Append(workPath)
                     .Append("\" --chapter-exe \"")
                     .Append(setting.ChapterExePath)
                     .Append("\" --jls \"")
@@ -2434,18 +2441,6 @@ namespace Amatsukaze.Server
                             .Append(setting.B24ToVttPath)
                             .Append("\" --psisiarc \"")
                             .Append(setting.PsisiarcPath)
-                            .Append("\"");
-                    }
-                }
-
-                // 一時ファイルを残す元タスクでtsreadex_dump.txtを生成しておく。
-                // 再投入時にも、dumpがなければ通常処理へ戻って生成できるようパスを渡す。
-                if (profile.EnableWebVTT || profile.NoRemoveTmp || !string.IsNullOrEmpty(resumeDir))
-                {
-                    if (!string.IsNullOrEmpty(setting.TsReadExPath))
-                    {
-                        sb.Append(" --tsreadex \"")
-                            .Append(setting.TsReadExPath)
                             .Append("\"");
                     }
                 }
@@ -2874,6 +2869,11 @@ namespace Amatsukaze.Server
                     {
                         throw new ArgumentException("NicoConvASSまたはnicojk_ass.pyのパスが設定されていません");
                     }
+                    if (!string.IsNullOrEmpty(setting.NicoJKAssPath)
+                        && (Util.IsServerLinux() || string.IsNullOrEmpty(setting.NicoConvASSPath)))
+                    {
+                        PythonExecutableResolver.ResolveOrThrow("nicojk_ass.py");
+                    }
                 }
 
                 if (profile.EnableRename)
@@ -2883,6 +2883,10 @@ namespace Amatsukaze.Server
                         throw new ArgumentException("SCRenameパスが設定されていません");
                     }
                     var fileName = Path.GetFileName(setting.SCRenamePath);
+                    if (string.Equals(Path.GetExtension(fileName), ".py", StringComparison.OrdinalIgnoreCase))
+                    {
+                        PythonExecutableResolver.ResolveOrThrow("SCRename.py");
+                    }
                     // 間違える人がいるかも知れないので一応チェックしておく
                     if(fileName.Equals("SCRename.bat", StringComparison.OrdinalIgnoreCase) ||
                         fileName.Equals("SCRenameEDCB.bat", StringComparison.OrdinalIgnoreCase))
