@@ -559,7 +559,7 @@ static bool tryLoadResume(
             reformInfo->clearCaptionItems();
         }
         reformInfo->prepare(setting.isSplitSub(), setting.isEncodeAudio(), setting.getFormat() == FORMAT_TSREPLACE,
-            setting.getAudioFormatChangeMode(), setting.getAudioFilePath());
+            setting.getAudioFormatChangeMode(), setting.getAudioFilePath(), setting.isIgnoreVideoDisplayChanges());
         ctx.info(_T("[一時ファイル再利用] ストリーム情報を読み込みました"));
         if (!validateResumeFiles(setting, *reformInfo, info, reason)) {
             ctx.warnF(_T("[一時ファイル再利用] %s。通常処理へ戻ります"), reason.c_str());
@@ -1698,7 +1698,7 @@ void DoBadThing() {
 
     if (!isReusingTmp) {
         reformInfo.prepare(setting.isSplitSub(), setting.isEncodeAudio(), setting.getFormat() == FORMAT_TSREPLACE,
-            setting.getAudioFormatChangeMode(), setting.getAudioFilePath());
+            setting.getAudioFormatChangeMode(), setting.getAudioFilePath(), setting.isIgnoreVideoDisplayChanges());
     }
     if (setting.isMpeg2PartialEnabled()) {
         if (reformInfo.getVideoStreamFormat() != VS_MPEG2) {
@@ -1716,20 +1716,6 @@ void DoBadThing() {
 
     NicoJK nicoJK(ctx, setting);
     bool nicoOK = false;
-    if (!isNoEncode && setting.isNicoJKEnabled()) {
-        ctx.info(_T("[ニコニコ実況コメント取得]"));
-        auto srcDuration = reformInfo.getInDuration() / MPEG_CLOCK_HZ;
-        nicoOK = nicoJK.makeASS(serviceId, startTime, (int)srcDuration);
-        if (nicoOK) {
-            reformInfo.SetNicoJKList(nicoJK.getDialogues());
-        } else {
-            if (nicoJK.isFail() == false) {
-                ctx.info(_T("対応チャンネルがありません"));
-            } else if (setting.isIgnoreNicoJKError() == false) {
-                THROW(RuntimeException, "ニコニコ実況コメント取得に失敗");
-            }
-        }
-    }
 
     int numVideoFiles = reformInfo.getNumVideoFile();
     int mainFileIndex = reformInfo.getMainVideoFileIndex();
@@ -1889,8 +1875,36 @@ void DoBadThing() {
         return; // CM解析のみならここで終了
     }
 
+    // 実況は、本編の区間(CM解析の結果)をnicojk_assへ渡すため、ロゴ・CM解析の後で取得する。
+    if (setting.isNicoJKEnabled()) {
+        ctx.info(_T("[ニコニコ実況コメント取得]"));
+        auto srcDuration = reformInfo.getInDuration() / MPEG_CLOCK_HZ;
+        const std::vector<int>* mainTrims = nullptr;
+        if (numVideoFiles == 1) {
+            mainTrims = &cmanalyze[0]->getTrims();
+        } else if (!cmanalyze[mainFileIndex]->getTrims().empty()) {
+            // 中間ファイルが複数ある録画は、Trimを同じ原点の秒に直せるか確かめていないため、区間を渡さない
+            ctx.warn(_T("映像の形式が途中で変わる録画のため、実況へ本編の区間を渡しません"));
+        }
+        nicoOK = nicoJK.makeASS(serviceId, startTime, (int)srcDuration, &reformInfo, mainTrims);
+        if (nicoOK) {
+            reformInfo.SetNicoJKList(nicoJK.getDialogues());
+        } else {
+            if (nicoJK.isFail() == false) {
+                ctx.info(_T("対応チャンネルがありません"));
+            } else if (setting.isIgnoreNicoJKError() == false) {
+                THROW(RuntimeException, "ニコニコ実況コメント取得に失敗");
+            }
+        }
+    }
+
     auto audioDiffInfo = reformInfo.genAudio(setting.getCMTypes(), cmCutOffsetFrames);
-    audioDiffInfo.printAudioPtsDiff(ctx);
+    const bool reportAudioDiff = setting.getFormat() != FORMAT_TSREPLACE;
+    if (reportAudioDiff) {
+        audioDiffInfo.printAudioPtsDiff(ctx);
+    } else {
+        ctx.info(_T("音声再配置統計: tsreplace指定時は対象外です"));
+    }
 
     const auto& allKeys = reformInfo.getOutFileKeys();
     std::vector<EncodeFileKey> keys;
@@ -2601,8 +2615,10 @@ void DoBadThing() {
         auto duration = reformInfo.getInOutDuration();
         sb.append(", \"srcduration\": %.3f, \"outduration\": %.3f",
             (double)duration.first / MPEG_CLOCK_HZ, (double)duration.second / MPEG_CLOCK_HZ);
-        sb.append(", \"audiodiff\": ");
-        audioDiffInfo.printToJson(sb);
+        if (reportAudioDiff) {
+            sb.append(", \"audiodiff\": ");
+            audioDiffInfo.printToJson(sb);
+        }
         sb.append(", \"error\": {");
         for (int i = 0; i < AMT_ERR_MAX; i++) {
             if (i > 0) sb.append(", ");

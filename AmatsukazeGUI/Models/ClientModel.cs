@@ -1596,13 +1596,13 @@ namespace Amatsukaze.Models
                     item.IntVideoFileSize.ToString(),
                     item.OutFileSize.ToString(),
                     item.DisplayCompressionRate,
-                    (item.AudioDiff?.TotalSrcFrames ?? 0).ToString(),
-                    (item.AudioDiff?.TotalOutFrames ?? 0).ToString(),
-                    (item.AudioDiff?.TotalOutUniqueFrames ?? 0).ToString(),
-                    (item.AudioDiff?.NotIncludedPer ?? 0).ToString(),
-                    (item.AudioDiff?.AvgDiff ?? 0).ToString(),
-                    (item.AudioDiff?.MaxDiff ?? 0).ToString(),
-                    (item.AudioDiff?.MaxDiffPos ?? 0).ToString()
+                    item.AudioDiff?.TotalSrcFrames.ToString() ?? "",
+                    item.AudioDiff?.TotalOutFrames.ToString() ?? "",
+                    item.AudioDiff?.TotalOutUniqueFrames.ToString() ?? "",
+                    item.AudioDiff?.NotIncludedPer.ToString() ?? "",
+                    item.AudioDiff?.AvgDiff.ToString() ?? "",
+                    item.AudioDiff?.MaxDiff.ToString() ?? "",
+                    item.AudioDiff?.MaxDiffPos.ToString() ?? ""
                 };
                 sw.WriteLine(string.Join(",", row));
             }
@@ -2129,6 +2129,7 @@ namespace Amatsukaze.Models
                 profile.WhisperOption = data.Profile.WhisperOption;
                 profile.WhisperParallel = data.Profile.WhisperParallel;
                 profile.IgnoreNoDrcsMap = data.Profile.IgnoreNoDrcsMap;
+                profile.IgnoreVideoDisplayChanges = data.Profile.IgnoreVideoDisplayChanges;
                 profile.AudioFormatChangeMode = data.Profile.AudioFormatChangeMode;
                 profile.LooseLogoDetection = data.Profile.LooseLogoDetection;
                 profile.IgnoreNoLogo = data.Profile.IgnoreNoLogo;
@@ -2136,6 +2137,7 @@ namespace Amatsukaze.Models
                 profile.NoDelogo = data.Profile.NoDelogo;
                 profile.ParallelLogoAnalysis = data.Profile.ParallelLogoAnalysis;
                 profile.EnableNicoJK = data.Profile.EnableNicoJK;
+                profile.NicoJKReferenceMode = data.Profile.NicoJKReferenceMode;
                 profile.IgnoreNicoJKError = data.Profile.IgnoreNicoJKError;
                 profile.NicoJKLog = data.Profile.NicoJKLog;
                 profile.NicoJKFormat720S = data.Profile.NicoJKFormats[0];

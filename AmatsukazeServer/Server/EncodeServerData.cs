@@ -505,6 +505,8 @@ namespace Amatsukaze.Server
         [DataMember]
         public bool EnableNicoJK { get; set; }
         [DataMember]
+        public int NicoJKReferenceMode { get; set; }
+        [DataMember]
         public bool IgnoreNicoJKError { get; set; }
         [DataMember]
         public bool NicoJKLog { get; set; }
@@ -574,6 +576,8 @@ namespace Amatsukaze.Server
         [DataMember]
         public string AdditionalEraseLogo { get; set; }
 
+        [DataMember]
+        public bool IgnoreVideoDisplayChanges { get; set; }
         [DataMember]
         public bool EnableAudioEncode { get; set; }
         [DataMember]
@@ -1145,6 +1149,12 @@ namespace Amatsukaze.Server
             keyValueBool("自動ビットレート指定", profile.AutoBuffer);
             keyValue("自動ビットレート係数", string.Format("{0}:{1}:{2}", profile.Bitrate.A, profile.Bitrate.B, profile.Bitrate.H264));
             keyValueBool("ニコニコ実況コメントを有効にする", profile.EnableNicoJK);
+            keyValue("アニメの別放送のコメント", profile.NicoJKReferenceMode switch
+            {
+                1 => "置き換える",
+                2 => "統合する",
+                _ => "使用しない"
+            });
             keyValueBool("ニコニコ実況コメントのエラーを無視する", profile.IgnoreNicoJKError);
             keyValueBool("NicoJKログから優先的にコメントを取得する", profile.NicoJKLog);
             keyValue("コメント出力フォーマット", profile.NicoJKFormatMask.ToString());
@@ -1199,6 +1209,7 @@ namespace Amatsukaze.Server
             keyValueBool("エンコードアフィニティを無視する", profile.IgnoreEncodeAffinity);
             keyValue("エンコードバッファフレーム数", profile.NumEncodeBufferFrames.ToString());
             keyValue("追加ロゴ消去", profile.AdditionalEraseLogo ?? "なし");
+            keyValueBool("表示領域・SARの変更では分割しない", profile.IgnoreVideoDisplayChanges);
             keyValue("音声フォーマット変更", profile.GetAudioFormatChangeModeDisplayName());
             keyValueBool("音声エンコードを有効にする", profile.EnableAudioEncode);
             if (profile.EnableAudioEncode)

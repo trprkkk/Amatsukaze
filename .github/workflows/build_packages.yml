@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
@@ -65,7 +65,7 @@ jobs:
           tar -cf native.tar -C buildAmatsukaze/Amatsukaze .
 
       - name: Upload native tree
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amatsukaze-native
           path: native.tar
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
@@ -106,7 +106,7 @@ jobs:
           tar -cf dotnet.tar -C buildAmatsukaze/Amatsukaze .
 
       - name: Upload .NET tree
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amatsukaze-dotnet
           path: dotnet.tar
@@ -120,7 +120,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -136,13 +136,13 @@ jobs:
           echo "version_name=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Download native tree
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amatsukaze-native
           path: parts
 
       - name: Download .NET tree
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amatsukaze-dotnet
           path: parts
@@ -165,6 +165,17 @@ jobs:
           basepkg_archive="parts/basepkg/Amatsukaze_Linux_BasePkg_20261014_x64.tar.xz"
           test -s "$basepkg_archive"
           tar -xf "$basepkg_archive" -C pkg
+          # nicojk_ass(別リポジトリ)のリリースから、単一のexeだけを取り込む。
+          # 版はここで決める。展開したexeの--versionが版と一致することを確かめる。
+          NICOJK_ASS_VERSION=0.01
+          NICOJK_ASS_REPO=https://github.com/rigaya/nicojk_ass
+          curl -fL --retry 3 --retry-delay 10 -o nicojk_ass.zip \
+            "${NICOJK_ASS_REPO}/releases/download/${NICOJK_ASS_VERSION}/nicojk_ass-${NICOJK_ASS_VERSION}-linux-x64.zip"
+          python3 -m zipfile -e nicojk_ass.zip nicojk_ass_x
+          chmod 755 nicojk_ass_x/nicojk_ass
+          test "$(./nicojk_ass_x/nicojk_ass --version)" = "nicojk_ass ${NICOJK_ASS_VERSION}"
+          rm -rf pkg/exe_files/nicojk_ass
+          install -m 755 nicojk_ass_x/nicojk_ass pkg/exe_files/nicojk_ass
           docker pull "ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004"
           docker run --rm \
             -v "${{ github.workspace }}:/work" \
@@ -186,13 +197,13 @@ jobs:
           7z h -scrc* ${{ steps.create_pkg.outputs.pkg_name }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Amatsukaze_linux_${{ steps.rev.outputs.version_name }}
           path: ${{ steps.create_pkg.outputs.pkg_name }}
 
       - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -205,13 +216,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Show Docker info
         run: |

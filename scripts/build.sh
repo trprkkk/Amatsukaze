@@ -355,18 +355,6 @@ if [ "${BUILD_NATIVE}" = "true" ]; then
     install -D -t "${INSTALL_DIR}/exe_files" "${BUILD_DIR}/build_ffnk/AmatsukazeGenLogo/AmatsukazeGenLogo"
     install -D -t "${INSTALL_DIR}/exe_files" "${BUILD_DIR}/build_ffnk/Amatsukaze/libAmatsukaze.so"
     install -D -t "${INSTALL_DIR}/exe_files" "${BUILD_DIR}/build_ff612/Amatsukaze/libAmatsukaze2.so"
-    # ニコニコ実況コメント取得・ASS変換スクリプト（Linux用）
-    install -m 755 -D -t "${INSTALL_DIR}/exe_files" ./scripts/nicojk_ass.py
-    # danmaku2ass（コメントXML→ASS変換、GPL-3.0）: なければダウンロード
-    DANMAKU2ASS_COMMIT="ced881747670c2eb1c0dbd292c2a567f444b056a"
-    DANMAKU2ASS_PATH="${INSTALL_DIR}/exe_files/danmaku2ass.py"
-    if [ ! -s "${DANMAKU2ASS_PATH}" ]; then
-        echo "danmaku2ass.py をダウンロードします..."
-        wget -q "https://raw.githubusercontent.com/m13253/danmaku2ass/${DANMAKU2ASS_COMMIT}/danmaku2ass.py" \
-            -O "${DANMAKU2ASS_PATH}" || { rm -f "${DANMAKU2ASS_PATH}"; echo "danmaku2ass.py のダウンロードに失敗しました"; exit 1; }
-        chmod 755 "${DANMAKU2ASS_PATH}"
-    fi
-
     # アーカイブ展開用 7-Zip CLI（静的リンク版）
     SEVENZIP_DIR="${INSTALL_DIR}/exe_files/7z"
     SEVENZIP_PATH="${SEVENZIP_DIR}/7zzs"
@@ -400,6 +388,20 @@ if [ "${BUILD_NATIVE}" = "true" ]; then
         echo "7-Zip CLI ${SEVENZIP_VER} は配置済みです。"
     fi
     chmod 755 "${SEVENZIP_PATH}" || { echo "7-Zip CLI に実行権限を設定できませんでした"; exit 1; }
+
+    # ニコニコ実況コメント取得・ASS変換ツール nicojk_ass(別リポジトリ)
+    # リリースからの取り込みは、パッケージを作るCI(build_packages.yml)が行う。
+    # 手元のビルドでは、NICOJK_ASS_EXE(既定は隣のリポジトリの dist/nicojk_ass)があればコピーする。
+    # 旧版の exe_files/nicojk_ass.py と exe_files/danmaku2ass.py は使わなくなったので取り除く
+    rm -f "${INSTALL_DIR}/exe_files/nicojk_ass.py" "${INSTALL_DIR}/exe_files/danmaku2ass.py"
+    NICOJK_ASS_EXE="${NICOJK_ASS_EXE:-${PROJECT_ROOT}/../nicojk_ass/dist/nicojk_ass}"
+    if [ -f "${NICOJK_ASS_EXE}" ]; then
+        # 以前のフォルダの形(exe_files/nicojk_ass/)が残っていると、exeを置けないので取り除く
+        [ -d "${INSTALL_DIR}/exe_files/nicojk_ass" ] && rm -rf "${INSTALL_DIR}/exe_files/nicojk_ass"
+        install -m 755 "${NICOJK_ASS_EXE}" "${INSTALL_DIR}/exe_files/nicojk_ass" || exit 1
+    else
+        echo "警告: nicojk_ass のexeが見つからないため配置しません: ${NICOJK_ASS_EXE}"
+    fi
 
     # defaultファイルのコピー
     cp -r defaults/avs/*       "${INSTALL_DIR}/avs/"

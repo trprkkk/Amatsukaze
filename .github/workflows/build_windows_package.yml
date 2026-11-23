@@ -20,15 +20,15 @@ jobs:
       JOINLOGO_URL: https://github.com/yobibi/join_logo_scp/releases/download/v5.1.1/join_logo_scp_51_1.zip
       AVSCUDA_URL: https://github.com/rigaya/AviSynthCUDAFilters/releases/download/0.7.5/AviSynthCUDAFilters_Release_0.7.5.zip
       LSMASH_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20250907-045307/lsmash_20200404.7z
-      X264_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261031-133502/x264_3223_x64.zip
-      X265_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261031-133502/x265_4.3%2B93_x64.zip
-      SVT_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261031-133502/SvtAv1EncApp_4.2.0-230_x64_clang.zip
+      X264_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261121-122925/x264_3223_x64.zip
+      X265_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261121-122925/x265_4.3%2B120_x64.zip
+      SVT_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20261121-122925/SvtAv1EncApp_4.3.0_x64_clang.zip
       X262_URL: https://github.com/rigaya/AutoBuildForAviUtlPlugins/releases/download/auto-build-20250907-045307/x262_20260901.zip
       NNEDI3_URL: https://github.com/rigaya/NNEDI3/releases/download/0.00/nnedi3_0.00_x64.zip
       BASE_PKG_URL: https://github.com/rigaya/Amatsukaze/releases/download/1.0.9.0/AmatsukazeBasePkg_20260902.7z
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
           del roots.sst
 
       - name: Cache vcpkg
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             vcpkg
@@ -80,7 +80,7 @@ jobs:
           )
           call vcpkg\\bootstrap-vcpkg.bat
           set VCPKG_ROOT=%CD%\\vcpkg
-          vcpkg\\vcpkg install zlib:x64-windows-static libjpeg-turbo:x64-windows-static
+          vcpkg\\vcpkg install zlib:x64-windows-static libjpeg-turbo[turbojpeg]:x64-windows-static
           echo VCPKG_ROOT=%CD%\\vcpkg>> %GITHUB_ENV%
 
       - name: Download dependencies
@@ -142,9 +142,19 @@ jobs:
           echo --- deps contents (after Extract) ---
           tree /f deps
 
+      # runnerには新しい版のSDK(11など)も入っていて、何もしないとそちらが使われる。
+      # SDK 10を入れ、global.jsonで10.0の最新の機能帯に固定する(WebUIはnet10.0)。
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       - name: Install .NET WebAssembly build tools
         shell: cmd
         run: |
+          cd /d %GITHUB_WORKSPACE%
+          echo {"sdk":{"version":"10.0.100","rollForward":"latestFeature"}}> global.json
+          dotnet --version
           dotnet workload install wasm-tools --skip-manifest-update
 
       - name: Build (publish.bat)
@@ -188,20 +198,6 @@ jobs:
           if exist publish\\win-x64\\*.dll copy /y publish\\win-x64\\*.dll package\\exe_files
           if exist publish\\win-x64\\*.dll.config copy /y publish\\win-x64\\*.dll.config package\\exe_files
           if exist publish\\win-x64\\*.xml copy /y publish\\win-x64\\*.xml package\\exe_files
-          if exist publish\\win-x64\\nicojk_ass.py copy /y publish\\win-x64\\nicojk_ass.py package\\exe_files
-
-          rem danmaku2ass.pyは固定コミットから取得する
-          set "DANMAKU2ASS_COMMIT=ced881747670c2eb1c0dbd292c2a567f444b056a"
-          curl.exe -fL --retry 3 --retry-delay 10 -o package\\exe_files\\danmaku2ass.py "https://raw.githubusercontent.com/m13253/danmaku2ass/%DANMAKU2ASS_COMMIT%/danmaku2ass.py"
-          if errorlevel 1 (
-            echo danmaku2ass.pyの取得に失敗しました。
-            exit /b 1
-          )
-          certutil -hashfile package\\exe_files\\danmaku2ass.py SHA256 | findstr /I /C:"899526b7a8f31ab20987bdcebc543f67be9accdcec6120d20f39cfc4efa001cf" >nul
-          if errorlevel 1 (
-            echo danmaku2ass.pyのSHA-256が一致しません。
-            exit /b 1
-          )
 
           if exist package\\exe_files\\wwwroot rmdir /s /q package\\exe_files\\wwwroot
           if exist publish\\win-x64\\wwwroot robocopy publish\\win-x64\\wwwroot package\\exe_files\\wwwroot /E /NFL /NDL /NJH /NJS
@@ -276,6 +272,20 @@ jobs:
           echo --- package contents (after Assemble) ---
           tree /f package
 
+      # nicojk_ass(別リポジトリ)のリリースから、単一のexeだけを取り込む。
+      # 版はここで決める。展開したexeの--versionが版と一致することを確かめる。
+      - name: Add nicojk_ass
+        shell: bash
+        env:
+          NICOJK_ASS_VERSION: "0.01"
+          NICOJK_ASS_REPO: https://github.com/rigaya/nicojk_ass
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 10 -o nicojk_ass.zip \
+            "${NICOJK_ASS_REPO}/releases/download/${NICOJK_ASS_VERSION}/nicojk_ass-${NICOJK_ASS_VERSION}-windows-x64.zip"
+          7z x -y -onicojk_ass_x nicojk_ass.zip
+          test "$(./nicojk_ass_x/nicojk_ass.exe --version | tr -d '\r')" = "nicojk_ass ${NICOJK_ASS_VERSION}"
+          cp nicojk_ass_x/nicojk_ass.exe package/exe_files/
       - name: Create archive
         shell: cmd
         run: |
@@ -285,12 +295,8 @@ jobs:
             echo ERROR: package\\exe_files\\BatchHashChecker.exe remains in package.
             exit /b 1
           )
-          if not exist package\\exe_files\\nicojk_ass.py (
-            echo ERROR: package\\exe_files\\nicojk_ass.py がありません。
-            exit /b 1
-          )
-          if not exist package\\exe_files\\danmaku2ass.py (
-            echo ERROR: package\\exe_files\\danmaku2ass.py がありません。
+          if not exist package\\exe_files\\nicojk_ass.exe (
+            echo ERROR: package\\exe_files\\nicojk_ass.exe がありません。
             exit /b 1
           )
           set "PKG_NAME=Amatsukaze_${{ steps.version.outputs.version_name }}.7z"
@@ -299,13 +305,13 @@ jobs:
         id: pack
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Amatsukaze_${{ steps.version.outputs.version_name }}
           path: ${{ steps.pack.outputs.pkg_name }}
 
       - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

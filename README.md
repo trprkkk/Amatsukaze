@@ -59,7 +59,7 @@ x264, x265, SVT-AV1, QSVEnc, NVEnc, VCEEnc, x262
 - デュアルモノAACを２つのモノラルAACに無劣化分離
 - 字幕をSRT、ASS、PGS、VTTに変換
 - Whisperによる文字起こしでSRT字幕を追加
-- ニコニコ実況や2ch実況のコメントをASS字幕として追加（NicoConvAss/nicojk_ass.py使用）
+- ニコニコ実況や2ch実況のコメントをASS字幕として追加（NicoConvAss/nicojk_ass使用）
 - 独自Avisynthソースクリップによる安定したチャプター・CM解析
 - ts構造を維持した映像部分のみの圧縮 (tsreplace使用)
 - MPEG2ソースの再エンコード範囲をCMカット境界周辺に抑え、それ以外を無劣化でコピー
@@ -539,6 +539,22 @@ AddTaskの終了コードは、`0`がタスク追加成功 (エンコード完�
 
 ### ニコニコ実況
 
+nicojk_assかNicoConvAssのどちらかを使用します。
+
+- Windows/Linux環境 (nicojk_ass)
+
+  同梱の[nicojk_ass](https://github.com/rigaya/nicojk_ass)を使用してass字幕変換を行います。なお、WindowsではNicoConvAssのパスが設定されている場合はNicoConvAssを優先します。
+
+  nicojk_assの出力はNicoConvAssの出力と完全互換ではないほか、細かい調整を行うことはできません。
+
+  - 設定方法
+  
+    1. 基本設定で、nicojk_assのパス(`exe_files/nicojk_ass`。Windowsは`nicojk_ass.exe`)を設定
+    
+    2. プロファイルでニコニコ実況コメントを有効化
+   
+    これでOKです。
+
 - Windows環境 (NicoConvAss)
 
   [NicoConvAss](http://vb45wb5b.seesaa.net/)を使って[ニコニコ実況](http://jk.nicovideo.jp/)コメントの過去ログをASS字幕として追加できます。
@@ -549,11 +565,11 @@ AddTaskの終了コードは、`0`がタスク追加成功 (エンコード完�
     
     2. NicoConvAss.exeへのパスを設定
     
-    <img src="https://i.imgur.com/uL4TJm9.png" width="405">
+       <img src="https://i.imgur.com/uL4TJm9.png" width="405">
     
     3. ニコニコ実況コメントを有効化
     
-    <img src="https://i.imgur.com/ZFyOn5l.png" width="445">
+       <img src="https://i.imgur.com/ZFyOn5l.png" width="445">
     
     NicoConvAssでコメントを取得するには、[JKCommentGetter](https://github.com/ACUVE/JKCommentGetter)のセットアップも必要になります。
     
@@ -561,22 +577,27 @@ AddTaskの終了コードは、`0`がタスク追加成功 (エンコード完�
     
     NicoConvAssのパラメータを設定したい場合は、NicoConvAss.exeを起動して設定してください。
 
-- Windows/Linux環境 (nicojk_ass.py)
+#### アニメの別放送のコメント
 
-  同梱のnicojk_ass.py + [danmaku2ass.py](https://github.com/m13253/danmaku2ass) を使用してass字幕変換を行えます。Linuxでは変換ツールとしてnicojk_ass.pyのみを選択できます。WindowsではNicoConvAssのパスが設定されている場合はNicoConvAssを優先し、設定されていない場合はnicojk_ass.pyを使用します。
+プロファイルの「アニメの別放送のコメント」を「統合する」か「置き換える」にすると、ジャンルがアニメの録画に、同じ回を放送した別の局の実況コメントも使います。この設定はnicojk_assだけが対応しているので、WindowsでNicoConvAssを設定していても、この録画にはnicojk_assを使います(基本設定にnicojk_assのパスが必要です)。
 
-  nicojk_ass.pyの実行にはPython 3が必要です。Windowsでは`python`、Linuxでは`python3`コマンドをPATHから実行できるようにしてください。
+- 統合する: 対象の局のコメントと、別の局のコメントを混ぜます。
+- 置き換える: 別の局のコメントだけにします。
 
-  nicojk_ass.pyでは、ニコニコ実況の過去ログAPIからデータを取得し、danmaku2ass.pyでassに変換後、生成されたassをNicoConvAssにある程度寄せる処理を行っています。
-  NicoConvAssの出力と完全互換ではないほか、細かい調整を行うことはできません。
+別の局の録画が見つかれば、音声で時刻を合わせます。CMの位置が違っても合わせられます。
 
-  - 設定方法
-  
-    1. 基本設定で、nicojk_ass.pyのパスを設定
-    
-    2. プロファイルでニコニコ実況コメントを有効化
-   
-    これでOKです。
+<img src="./data/nicojk_alt_audio.png" width="800">
+
+録画が見つからなければ、コメントの内容で時刻を合わせます。CMの位置が違ってもある程度合いますが、やや精度が落ちます。
+
+<img src="./data/nicojk_alt_comment.png" width="800">
+
+- 別の局の放送は、同じ回の先の放送、同時刻の放送、終わってから10分たったあとの放送です。先の放送を優先します。
+- 録画は、入力TSと同じフォルダと、その下の`succeeded`・`failed`フォルダから探します。
+- 遅れネットの地方局など、対象の局の実況が別の番組のものなら、対象の局のコメントは使いません。別の局の録画もなければコメントを付けません。
+- 時刻を合わせられなかったときは、対象の局のコメントだけを使います。
+- 結果と、見つからなかった理由はジョブログで確認できます。
+
 
 ### バッチファイル実行機能
 
@@ -1088,8 +1109,8 @@ GPLのライブラリを組み込んでいるので、全体にGPLが適用さ�
 | [psisiarc](https://github.com/xtne6f/psisiarc) | MIT |
 | SCRename | 配布元の個別条件に従う |
 | [SCRenamePy](https://github.com/rigaya/SCRenamePy) | 配布元の個別条件に従う |
-| [nicojk_ass.py](./scripts/nicojk_ass.py) | MIT |
-| [danmaku2ass.py](https://github.com/m13253/danmaku2ass) | GPL-3.0 |
+| [nicojk_ass](https://github.com/rigaya/nicojk_ass) | ソースはMIT、配布するexeはGPL-3.0 |
+| [danmaku2ass.py](https://github.com/m13253/danmaku2ass)(nicojk_assに同梱) | GPL-3.0 |
 | [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) | BSD系ライセンス（複数） |
 | [zlib](https://zlib.net/) | zlib License |
 | [libaribcaption](https://github.com/xqq/libaribcaption) | MIT |
@@ -1151,7 +1172,7 @@ vcpkg integrate install
 次にzlib、libjpeg-turboを静的ライブラリとしてインストールします。
 
 ```bat
-vcpkg install zlib:x64-windows-static libjpeg-turbo:x64-windows-static
+vcpkg install zlib:x64-windows-static libjpeg-turbo[turbojpeg]:x64-windows-static
 ```
 
 libaribcaptionのビルドを自動で行います。そのため、Visual Studio Installerで「Windows 用 C++ CMake ツール」を導入し、gitにパスを通しておいてください。

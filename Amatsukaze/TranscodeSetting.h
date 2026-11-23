@@ -15,6 +15,7 @@
 #include "StreamUtils.h"
 #include "CoreUtils.hpp"
 #include "InterProcessComm.h"
+#include "NicoJKSource.h"
 
 struct EncoderOptionInfo;
 
@@ -244,6 +245,7 @@ struct Config {
     std::pair<int, int> userSAR;
     ENUM_AUDIO_ENCODER audioEncoder;
     AUDIO_FORMAT_CHANGE_MODE audioFormatChangeMode = AFC_SPLIT;
+    bool ignoreVideoDisplayChanges = false;
     tstring audioEncoderPath;
     tstring audioEncoderOptions;
     tstring muxerPath;
@@ -261,7 +263,10 @@ struct Config {
     // 字幕生成モード
     SUBTITLE_MODE subtitleMode;
     tstring nicoConvAssPath;
+    // --nicoassでNicoConvASSを明示した(Windows)。--nicojkassもあれば、nicojk_assは先行放送のコメントと手動の取得元にだけ使う
+    bool nicoConvAssSpecified = false;
     tstring nicoJKAssPath;
+    NicoJKSourceSpec nicoJKSource;
     tstring nicoConvChSidPath;
     bool exclusiveBatExec;
     tstring preEncBatchFile;
@@ -398,6 +403,8 @@ public:
 
     AUDIO_FORMAT_CHANGE_MODE getAudioFormatChangeMode() const;
 
+    bool isIgnoreVideoDisplayChanges() const;
+
     tstring getAudioEncoderPath() const;
 
     tstring getAudioEncoderOptions() const;
@@ -436,8 +443,10 @@ public:
     tstring getNicoConvAssPath() const;
 
     tstring getNicoJKAssPath() const;
+    const NicoJKSourceSpec& getNicoJKSource() const { return conf.nicoJKSource; }
 
     bool isNicoJKAssEnabled() const;
+    bool isNicoConvAssPreferred() const;
 
     tstring getNicoConvChSidPath() const;
 

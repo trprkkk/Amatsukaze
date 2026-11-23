@@ -448,7 +448,7 @@ namespace Amatsukaze.Server
                 EncodeStartDate = start,
                 EncodeFinishDate = finish,
                 MachineName = Dns.GetHostName(),
-                AudioDiff = new AudioDiff()
+                AudioDiff = json.IsDefined("audiodiff") && json.audiodiff != null ? new AudioDiff()
                 {
                     TotalSrcFrames = (int)json.audiodiff.totalsrcframes,
                     TotalOutFrames = (int)json.audiodiff.totaloutframes,
@@ -457,7 +457,7 @@ namespace Amatsukaze.Server
                     AvgDiff = json.audiodiff.avgdiff,
                     MaxDiff = json.audiodiff.maxdiff,
                     MaxDiffPos = json.audiodiff.maxdiffpos
-                },
+                } : null,
                 Chapter = json.cmanalyze,
                 NicoJK = json.nicojk,
                 TrimAVS = json.trimavs,
@@ -1020,7 +1020,7 @@ namespace Amatsukaze.Server
                     isMp4,
                     srcpath, srcpathOrg, localdst + ext, json, item.StreamFormat,
                     item.ServiceId, logopaths, ignoreNoLogo, jlscmd, jlsopt, ceopt, trimavs, divfile, resumeDir, server.GetBatDirectoryPath(),
-                    pipes?.InHandle, pipes?.OutHandle, Id);
+                    pipes?.InHandle, pipes?.OutHandle, Id, item.EITStartTime, EncodeServer.GetNicoJKAltMode(profile, item.Genre));
                 string exename = server.AppData_.setting.AmatsukazePath;
 
                 int outputMask = profile.OutputMask;

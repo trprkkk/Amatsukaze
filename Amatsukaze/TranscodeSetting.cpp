@@ -997,6 +997,10 @@ bool ConfigWrapper::isEncodeAudio() const {
     return conf.audioEncoder != AUDIO_ENCODER_NONE;
 }
 
+bool ConfigWrapper::isIgnoreVideoDisplayChanges() const {
+    return conf.ignoreVideoDisplayChanges;
+}
+
 AUDIO_FORMAT_CHANGE_MODE ConfigWrapper::getAudioFormatChangeMode() const {
     return (isEncodeAudio() || conf.format == FORMAT_TSREPLACE)
         ? AFC_SPLIT : conf.audioFormatChangeMode;
@@ -1092,6 +1096,11 @@ tstring ConfigWrapper::getNicoJKAssPath() const {
 
 bool ConfigWrapper::isNicoJKAssEnabled() const {
     return !conf.nicoJKAssPath.empty();
+}
+
+// 通常の実況取得にNicoConvASSを使うか(--nicoassを明示したときだけ)
+bool ConfigWrapper::isNicoConvAssPreferred() const {
+    return conf.nicoConvAssSpecified && !conf.nicoConvAssPath.empty();
 }
 
 tstring ConfigWrapper::getNicoConvChSidPath() const {

@@ -2325,6 +2325,18 @@ namespace Amatsukaze.Models
         }
         #endregion
 
+        #region NicoJKReferenceMode変更通知プロパティ
+        public int NicoJKReferenceMode {
+            get { return Data.NicoJKReferenceMode; }
+            set {
+                if (Data.NicoJKReferenceMode == value)
+                    return;
+                Data.NicoJKReferenceMode = value;
+                RaisePropertyChanged();
+            }
+        }
+        #endregion
+
         #region IgnoreNicoJKError変更通知プロパティ
         public bool IgnoreNicoJKError {
             get { return Data.IgnoreNicoJKError; }
@@ -2894,6 +2906,16 @@ namespace Amatsukaze.Models
             }
         }
         #endregion
+
+        public bool IgnoreVideoDisplayChanges {
+            get { return Data.IgnoreVideoDisplayChanges; }
+            set {
+                if (Data.IgnoreVideoDisplayChanges == value)
+                    return;
+                Data.IgnoreVideoDisplayChanges = value;
+                RaisePropertyChanged();
+            }
+        }
 
         #region AudioFormatChangeMode変更通知プロパティ
         public int AudioFormatChangeMode {
