@@ -2891,10 +2891,7 @@ namespace Amatsukaze.Server
                     {
                         throw new ArgumentException("tsreplaceパスが設定されていません");
                     }
-                    if (profile.EncoderType == EncoderType.SVTAV1)
-                    {
-                        throw new ArgumentException("TS (replace)使用時は、SVT-AV1は使用できません。");
-                    }
+                    // SVT-AV1 (AV1) もtsreplaceで差し替え可能 ("Carriage of AV1 in MPEG-2 TS" 準拠のtsreplaceが必要)
                     if (profile.EncoderType == EncoderType.x262 && string.IsNullOrEmpty(setting.MKVMergePath))
                     {
                         throw new ArgumentException("x262のTS (replace)出力にはMKVMergeパスが設定されていません。");

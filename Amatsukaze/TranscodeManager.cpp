@@ -1622,8 +1622,9 @@ void DoBadThing() {
         if (!supportedSingleOutput && !supportedSplitOutput) {
             THROW(FormatException, "tsreplaceの出力選択が不正です");
         }
-        if (eoInfo.format != VS_H264 && eoInfo.format != VS_H265 && eoInfo.format != VS_MPEG2) {
-            THROW(FormatException, "tsreplaceはH.264/H.265/MPEG-2以外には対応していません");
+        if (eoInfo.format != VS_H264 && eoInfo.format != VS_H265 && eoInfo.format != VS_MPEG2 && eoInfo.format != VS_AV1) {
+            // AV1は "Carriage of AV1 in MPEG-2 TS" (AOM Working Group Draft) に対応したtsreplaceで差し替える
+            THROW(FormatException, "tsreplaceはH.264/H.265/MPEG-2/AV1以外には対応していません");
         }
     }
 
