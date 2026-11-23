@@ -2,7 +2,7 @@
 
 Automated MPEG2-TS Transcoder
 
-## [ダウンロードはこちら](https://github.com/rigaya/Amatsukaze/releases)
+## [ダウンロードはこちら](https://github.com/trprkkk/Amatsukaze/releases)
 
 ## これは何？
 
@@ -701,7 +701,7 @@ Trim(333,7285) ++ Trim(9084,26525) ++ Trim(28325,46336) ++ Trim(48135,48883)
 - 音声は元のTSのものがそのまま維持されます。「音声をエンコードする」を有効にした場合を除き、音声の抽出・再エンコードは行いません。
 - 字幕も元のTSのARIB字幕がそのまま残ります。
 - チャプターはTSに埋め込めないため、別ファイルとして出力されます。Whisperで生成したSRT字幕も別ファイルとして出力されます。
-- 差し替えられる映像はH.264/H.265/MPEG2/AV1です。AV1 (SVT-AV1) の場合は ["Carriage of AV1 in MPEG-2 TS"](https://aomediacodec.github.io/av1-mpeg2-ts/) (AOM Working Group Draft) に対応したtsreplaceが必要です。
+- 差し替えられる映像はH.264/H.265/MPEG2/AV1です。AV1 (SVT-AV1) の場合は ["Carriage of AV1 in MPEG-2 TS"](https://aomediacodec.github.io/av1-mpeg2-ts/) (AOM Working Group Draft) に対応したtsreplaceが必要です。(本ビルドでは AV1 対応の tsreplace 0.23 を同梱しています)
 - 出力選択は「通常」「CMをカット」「本編とCMを分離」「CMのみ」「前後のCMのみカット」を使用できます。
 
 ### カット境界のみ再エンコード
@@ -743,7 +743,7 @@ Trim(333,7285) ++ Trim(9084,26525) ++ Trim(28325,46336) ++ Trim(48135,48883)
 
 インターレース解除やノイズリダクション、リサイズなどのフィルタ処理ができます。
 
-Avisynthフィルタ(CPU/CUDA)とQSVEnc/NVEnc/VCEEncの内蔵フィルタ(各GPU使用)を選択できます。
+Avisynthフィルタ(CPU/CUDA/OpenCL)とQSVEnc/NVEnc/VCEEncの内蔵フィルタ(各GPU使用)を選択できます。本ビルドでは OpenCL 版の AviSynth フィルタを同梱しており、CUDA が使えない GPU (Intel / AMD など) でもフィルタ処理を GPU で実行できます。
 
 <img src="data/amatsukaze_1090_filter_select.webp" width="520">
 
@@ -841,6 +841,27 @@ CUDAで処理する場合、Compute Capability 3.5以上のNVIDIA GPUが必要�
 
   これ以外のフィルタは計算量が多い、または、CPUに最適化していない、等の理由により、CPUで処理するとかなり遅いです。CUDAでの処理推奨です。
 
+
+### OpenCLフィルタ (本ビルド同梱)
+
+本ビルドでは、[trprkkk/AviSynthOpenCLFilters](https://github.com/trprkkk/AviSynthOpenCLFilters) の OpenCL 版フィルタ (KTemporalNR / KDeband / KEdgeLevel / KDeblock など) を `exe_files\plugins64` に同梱しています。CUDA が使えない GPU (Intel / AMD など) でも、対応するフィルタ処理を OpenCL で実行できます。
+
+- 使用方法 (GUI)
+
+  1. 「プロファイル」タブのフィルタ設定で「映像フィルタをCUDAで処理」を OFF にする
+  2. 時間軸安定化・バンディング低減・エッジ強調 (アニメ用) などを有効にする
+
+  これだけで、Amatsukaze が生成する KTemporalNR / KDeband / KEdgeLevel などの呼び出しが、同名で登録された OpenCL 実装で実行されます。
+
+- 使用方法 (CLI / カスタムフィルタ)
+
+  `exe_files\ocl_filters.avs` に同等のフィルタチェーンを用意しています。AmatsukazeCLI では `-f ocl_filters.avs`、GUI ではフィルタ設定を「カスタムフィルタ」にして「メインフィルタ」に指定してください。この場合、GUI 側のポストフィルタ設定は二重適用を避けるため無効にしてください。
+
+- 元の CUDA 版フィルタは `exe_files\plugins64\CUDA_backup` に退避しています。CUDA 版に戻す場合は、`CUDA_backup` 内の DLL を `plugins64` に戻し、同名の OpenCL 版 DLL (`*_avs.dll`) を削除してください。
+
+- OpenCL プラグインは移植途上の実装を含みます。使用するフィルタの検証状況は [trprkkk/AviSynthOpenCLFilters](https://github.com/trprkkk/AviSynthOpenCLFilters) の README を確認してください。
+
+- OpenCL 版が対応していない処理 (一部の KFM/QTGMC の bob 生成など) は CPU で動作します。インタレース解除には D3DVP (D3D11、CUDA不要) も使用できます。
 
 ### 独自AviSynthフィルタを使う
 
