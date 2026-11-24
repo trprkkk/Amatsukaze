@@ -22,10 +22,11 @@ goto lock
 
 for /f "usebackq delims=" %%A in (`git describe --tags`) do set "VER_FULL=%%A"
 for /f "usebackq delims= tokens=*" %%A in (`git describe "--abbrev=0" --tags`) do set "VER_TAG=%%A"
+for /f "tokens=1 delims=-" %%A in ("%VER_TAG%") do set "VER_NUM=%%A"
 
 > "%_TMP%" (
 echo #define AMATSUKAZE_VERSION "%VER_FULL%"
-echo #define AMATSUKAZE_PRODUCTVERSION %VER_TAG:.=,%
+echo #define AMATSUKAZE_PRODUCTVERSION %VER_NUM:.=,%
 )
 
 set "_RET=0"
