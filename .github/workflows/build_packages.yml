@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - master
+      - main
       - linux
       - WebUI
     tags:
       - '*'
+
+env:
+  GHCR_OWNER: ${{ vars.GHCR_OWNER || 'rigaya' }}
 
 # Amatsukazeのビルドは、必要なツールチェインの異なる2つの環境へ分割している。
 #  - ネイティブ (C++): Ubuntu 20.04。ここでビルドしたものは glibc 2.31 以降の
@@ -29,9 +33,9 @@ jobs:
       - name: Build native
         run: |
           # 古いキャッシュを掴まないよう、ベースイメージを明示的に取得する
-          docker pull ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004 || true
+          docker pull ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2004 || true
           docker build \
-            --build-arg GHCR_OWNER=${{ github.repository_owner }} \
+            --build-arg GHCR_OWNER=${{ env.GHCR_OWNER }} \
             --tag build_amatsukaze_native \
             --file docker/docker_ubuntu2004 ./
           docker run -dit --rm \
@@ -84,11 +88,11 @@ jobs:
       - name: Check wasm-tools workload
         run: |
           # jobs.container は可変タグの古いイメージがrunnerに残る場合があるため、明示的にpullする。
-          docker pull ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404
+          docker pull ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2404
           # wasm-tools が無いとWebUIが最適化なしで発行され、静かにサイズが増える。
           # ベースイメージ側で入れているので、無い場合はイメージが古い。
           if ! docker run --rm \
-            ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404 \
+            ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2404 \
             dotnet workload list | grep -q "wasm-tools"; then
             echo "wasm-toolsワークロードがありません。build_base_image.ymlを再実行してベースイメージを更新してください。" >&2
             exit 1
@@ -98,7 +102,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/work" \
-            ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404 \
+            ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2404 \
             bash -lc 'git config --global --add safe.directory /work && cd /work && ./scripts/build.sh buildAmatsukaze/Amatsukaze --dotnet-only'
 
       - name: Pack .NET tree
@@ -176,11 +180,11 @@ jobs:
           test "$(./nicojk_ass_x/nicojk_ass --version)" = "nicojk_ass ${NICOJK_ASS_VERSION}"
           rm -rf pkg/exe_files/nicojk_ass
           install -m 755 nicojk_ass_x/nicojk_ass pkg/exe_files/nicojk_ass
-          docker pull "ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004"
+          docker pull "ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2004"
           docker run --rm \
             -v "${{ github.workspace }}:/work" \
             -w /work \
-            "ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004" \
+            "ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2004" \
             bash ./scripts/build_dep_tools.sh \
               --assets-only \
               --package-dir /work/pkg \

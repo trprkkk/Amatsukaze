@@ -5,9 +5,13 @@ on:
   push:
     branches:
       - master
+      - main
       - windows
       - WebUI
   workflow_dispatch:
+
+env:
+  GHCR_OWNER: ${{ vars.GHCR_OWNER || 'rigaya' }}
 
 jobs:
   linux:
@@ -21,9 +25,9 @@ jobs:
           fetch-depth: 0
       - name: Build test image
         run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2404 || true
+          docker pull ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2404 || true
           docker build \
-            --build-arg GHCR_OWNER=${{ github.repository_owner }} \
+            --build-arg GHCR_OWNER=${{ env.GHCR_OWNER }} \
             --tag amatsukaze-native-tests \
             --file docker/docker_ubuntu2404 .
       - name: Build and run

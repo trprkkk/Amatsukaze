@@ -20,6 +20,9 @@ permissions:
   actions: read
   contents: read
 
+env:
+  GHCR_OWNER: ${{ vars.GHCR_OWNER || 'rigaya' }}
+
 jobs:
   verify:
     name: Assemble and verify
@@ -62,11 +65,11 @@ jobs:
           tar -xf "$basepkg_archive" -C pkg
           grep -Fq "\"version\":\"${BASEPKG_VERSION}\"" pkg/basepkg-manifest.json
           grep -Fq '"complete":true' pkg/basepkg-manifest.json
-          docker pull "ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004"
+          docker pull "ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2004"
           docker run --rm \
             -v "${{ github.workspace }}:/work" \
             -w /work \
-            "ghcr.io/${{ github.repository_owner }}/amatsukaze-builder:ubuntu2004" \
+            "ghcr.io/${{ env.GHCR_OWNER }}/amatsukaze-builder:ubuntu2004" \
             bash ./scripts/build_dep_tools.sh \
               --assets-only \
               --package-dir /work/pkg \
