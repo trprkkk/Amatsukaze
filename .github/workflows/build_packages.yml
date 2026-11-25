@@ -196,15 +196,19 @@ jobs:
           tar -Jcf ${PKG_NAME} -C pkg .
           echo "pkg_name=${PKG_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Calc hash
+      - name: Create checksum
         run: |
-          7z h -scrc* ${{ steps.create_pkg.outputs.pkg_name }}
+          pkg="${{ steps.create_pkg.outputs.pkg_name }}"
+          sha256sum "$pkg" > "$pkg.sha256"
+          cat "$pkg.sha256"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: Amatsukaze_linux_${{ steps.rev.outputs.version_name }}
-          path: ${{ steps.create_pkg.outputs.pkg_name }}
+          path: |
+            ${{ steps.create_pkg.outputs.pkg_name }}
+            ${{ steps.create_pkg.outputs.pkg_name }}.sha256
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v3
@@ -214,6 +218,7 @@ jobs:
         with:
           files: |
             ${{ steps.create_pkg.outputs.pkg_name }}
+            ${{ steps.create_pkg.outputs.pkg_name }}.sha256
 
   build-docker:
     needs: package

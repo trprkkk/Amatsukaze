@@ -1,0 +1,36 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release for tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/}"
+          for attempt in 1 2 3 4 5; do
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "Release $tag already exists."
+              exit 0
+            fi
+            if gh release create "$tag" --repo "$GITHUB_REPOSITORY" --verify-tag \
+                --title "$tag" --generate-notes; then
+              echo "Created release $tag."
+              exit 0
+            fi
+            echo "Retrying release creation (attempt $attempt/5)..."
+            sleep 5
+          done
+          echo "Failed to create release $tag." >&2
+          exit 1

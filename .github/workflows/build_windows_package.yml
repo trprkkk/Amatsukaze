@@ -10,6 +10,9 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-2025-vs2026
@@ -305,11 +308,21 @@ jobs:
           echo pkg_name=%PKG_NAME%>> %GITHUB_OUTPUT%
         id: pack
 
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $name = '${{ steps.pack.outputs.pkg_name }}'
+          $path = Join-Path (Get-Location).Path $name
+          $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLower()
+          [System.IO.File]::WriteAllText("$path.sha256", "$hash  $name`r`n")
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: Amatsukaze_${{ steps.version.outputs.version_name }}
-          path: ${{ steps.pack.outputs.pkg_name }}
+          path: |
+            ${{ steps.pack.outputs.pkg_name }}
+            ${{ steps.pack.outputs.pkg_name }}.sha256
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v3
@@ -319,3 +332,4 @@ jobs:
         with:
           files: |
             ${{ steps.pack.outputs.pkg_name }}
+            ${{ steps.pack.outputs.pkg_name }}.sha256
