@@ -163,11 +163,9 @@ ARG AMATSUKAZE_CACHE_BUST=
 COPY --from=fdkaac-builder /fdkaac-output/ /usr/local/bin/
 RUN : "$AMATSUKAZE_CACHE_BUST" \
     && mkdir -p /app \
-    && ARCHIVE_URL=$(curl -fsSL https://api.github.com/repos/rigaya/Amatsukaze/releases/latest \
-        | sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*\.tar\.xz\)".*/\1/p' \
-        | grep 'Amatsukaze_linux_.*_x64\.tar\.xz' | head -1) \
-    && test -n "$ARCHIVE_URL" \
-    && curl -fL --retry 3 "$ARCHIVE_URL" | tar -xJ -C /app \
+    && LATEST_TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/rigaya/Amatsukaze/releases/latest | sed 's#.*/tag/##') \
+    && test -n "$LATEST_TAG" \
+    && curl -fL --retry 3 "https://github.com/rigaya/Amatsukaze/releases/download/${LATEST_TAG}/Amatsukaze_linux_${LATEST_TAG}_x64.tar.xz" | tar -xJ -C /app \
     && grep -Fq '"complete":true' /app/basepkg-manifest.json \
     && mkdir -p /app/bat /app/config /app/recorded /app/logo /app/output /app/profile /app/temp
 
